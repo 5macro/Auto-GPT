@@ -1,0 +1,59 @@
+#!/bin/bash -e
+
+PROJECT_NAME=clash-auto-switch
+
+function setup()
+{
+    local venv_path=${1}
+    local requirements_type=${2}
+    local requirements_file_path="requirements.txt"
+
+    if [ -d "${venv_path}" ]
+    then
+        echo "venv exists, skip the venv initialization"
+    else
+        echo "► initialize venv"
+        python -m venv ${venv_path}
+    fi
+
+    source ${venv_path}/bin/activate
+
+    echo "► install/upgrade all packages from ${requirements_file_path}"
+    pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade -r ${requirements_file_path}
+
+    deactivate
+}
+
+function host:run()
+{
+    cd $(dirname $0)/..
+    setup ./venv/host main
+    source ./venv/host/bin/activate
+    python -m autogpt
+    deactivate
+}
+
+function host:test()
+{
+    cd $(dirname $0)/..
+    setup ./venv/host test
+    source ./venv/host/bin/activate
+    pytest -v
+    deactivate
+}
+
+function docker:run()
+{
+    setup /app/venv/docker main
+    source /app/venv/docker/bin/activate
+    python main.py -c /app/src/main/resources/config.yml
+    deactivate
+}
+
+function docker:test()
+{
+    setup /app/venv/docker test
+    source /app/venv/docker/bin/activate
+    pytest -v
+    deactivate
+}
